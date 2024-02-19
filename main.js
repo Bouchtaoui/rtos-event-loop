@@ -44,6 +44,7 @@ const readline = require("node:readline").createInterface({
   input: process.stdin,
   output: process.stdout,
 });
+const { count } = require("node:console");
 const { init_music, open_music, stop_music } = require("./music");
 
 /* In plaats van constantes te gebruiken,
@@ -59,6 +60,11 @@ const STATE_PROMPT_SYSTEM_STOP = 12;
 const STATE_PROMPT_PLAY_AUDIO = 13;
 const STATE_PROMPT_STOP_AUDIO = 14;
 
+const SUBJECT_SYSTEM = 1;
+const SUBJECT_PROMPT = 2;
+const SUBJECT_MUSIC = 3;
+const SUBJECT_GAME = 4;
+const SUBJECT_GPS = 5;
 /**
  * main_queue is where to push the events in, that
  * will be dispatched later
@@ -95,6 +101,9 @@ function pop_event_from_pool() {
   if (e) {
     event_count++;
     if (event_count > max_event_count) max_event_count = event_count;
+
+    console.log("Total events: ", event_count);
+    console.log("Max events created: ", max_event_count);
   }
   return e;
 }
@@ -116,76 +125,98 @@ const promptEvent = {
   state: STATE_PROMPT,
 };
 
+function start_system() {
+  const se = pop_event_from_pool();
+  se.cb = system_start;
+  se.state = STATE_SYSTEM_IDLE;
+  se.subject = SUBJECT_SYSTEM;
+  update_event(se);
+}
+function start_prompt() {
+  const se = pop_event_from_pool();
+  se.cb = processPrompt;
+  se.state = STATE_PROMPT;
+  se.subject = SUBJECT_PROMPT;
+  update_event(se);
+}
+
 function update_event(e) {
-    switch (e.app) {
-        case 'system':
-            console.log("Needs implementation");
-            update_system_event(e);
-            break;
-        case 'cmdl':
-            console.log("Needs implementation");
-            update_prompt_event(e);
-            break;
-        case 'music':
-            console.log("Needs implementation");
-            break;
-        case 'game':
-            console.log("Needs implementation");
-            break;
-        case 'gps':
-            console.log("Needs implementation");
-            break;
-        default:
-            break;
-    }
+  switch (e.subject) {
+    case SUBJECT_SYSTEM:
+      console.log("Needs implementation");
+      update_system_event(e);
+      break;
+    case SUBJECT_PROMPT:
+      console.log("Needs implementation");
+      update_prompt_event(e);
+      break;
+    case SUBJECT_MUSIC:
+      console.log("Needs implementation");
+      break;
+    case SUBJECT_GAME:
+      console.log("Needs implementation");
+      break;
+    case SUBJECT_GPS:
+      console.log("Needs implementation");
+      break;
+    default:
+      break;
+  }
 }
 
 function update_system_event(e) {
-  switch (systemEvent.state) {
+  switch (e.state) {
     case STATE_SYSTEM_IDLE:
-      systemEvent.state = STATE_SYSTEM_IDLE;
-      systemEvent.cb = system_idle;
+      e.state = STATE_SYSTEM_IDLE;
+      e.cb = system_idle;
       break;
     case STATE_SYSTEM_EXIT:
+        e.state = STATE_INACTIVE;
+        // e.cb = null;
       break;
     default:
-      systemEvent.state = STATE_SYSTEM_PANIC;
-      systemEvent.cb = system_panic;
+      e.state = STATE_SYSTEM_PANIC;
+      e.cb = system_panic;
       break;
   }
-  main_queue.push(systemEvent);
+  main_queue.push(e);
 }
 
 function update_prompt_event(e) {
-  switch (promptEvent.state) {
+  switch (e.state) {
     case STATE_SYSTEM_IDLE:
       break;
     case STATE_PROMPT_SYSTEM_START:
-      promptEvent.state = STATE_PROMPT_SYSTEM_START;
-      promptEvent.cb = system_start;
+      e.state = STATE_PROMPT_SYSTEM_START;
+      e.cb = system_start;
       break;
     case STATE_PROMPT_SYSTEM_STOP:
-      promptEvent.state = STATE_PROMPT_SYSTEM_STOP;
-      promptEvent.cb = system_stop;
+      e.state = STATE_PROMPT_SYSTEM_STOP;
+      e.cb = system_stop;
       break;
     case STATE_PROMPT_PLAY_AUDIO:
       break;
     case STATE_PROMPT_STOP_AUDIO:
       break;
     default:
-      promptEvent.state = STATE_PROMPT;
-      promptEvent.cb = processPrompt;
+      e.state = STATE_INACTIVE;
+    //   e.cb = processPrompt;
       break;
   }
-  main_queue.push(promptEvent);
+  main_queue.push(e);
 }
 
 function run_event_loop() {
   setInterval(() => {
     const event = main_queue.shift();
 
-    if (event) {
-      if (event.cb) event.cb();
+    if (event && event.cb) {
+        event.cb();
+        // update state
+        update_event(event);
+        // check if state is set to INACTIVE
+        // in that case put it back to event_pool
+        if(event.state === STATE_INACTIVE) push_event_to_pool(event);
     } else system_idle();
   }, 1000);
 }
@@ -193,19 +224,19 @@ function run_event_loop() {
 function system_idle() {
   console.log("State Idle...");
   console.log("Putting system to sleep...");
-  update_system_event();
+//   update_system_event();
 }
 function system_panic() {
   console.log("System in panic state, saved stack trace and than restart!");
-  update_system_event();
+//   update_system_event();
 }
 function system_start() {
   console.log("System Started!");
-  update_system_event();
+//   update_system_event();
 }
 function system_stop() {
   console.log("System stopped!");
-  update_system_event();
+//   update_system_event();
 }
 function system_exit() {
   console.log("System exiting!");
@@ -218,22 +249,34 @@ function processPrompt() {
     console.log("You entered: ", input);
     switch (input) {
       case "start":
-        console.log("Start playing music");
-        promptEvent.state = STATE_PROMPT_PLAY_AUDIO;
-        promptEvent.cb = open_music;
-        update_prompt_event();
+        {
+          console.log("Start playing music");
+          const evt = pop_event_from_pool();
+          evt.state = STATE_PROMPT_PLAY_AUDIO;
+          evt.subject = SUBJECT_PROMPT;
+          evt.cb = open_music;
+        //   update_prompt_event();
+        }
         break;
       case "stop":
-        console.log("Stop music");
-        promptEvent.state = STATE_PROMPT_STOP_AUDIO;
-        promptEvent.cb = stop_music;
-        update_prompt_event();
+        {
+          console.log("Stop music");
+          const evt = pop_event_from_pool();
+          evt.state = STATE_PROMPT_STOP_AUDIO;
+          evt.subject = SUBJECT_PROMPT;
+          evt.cb = stop_music;
+        //   update_prompt_event();
+        }
         break;
       case "exit":
-        console.log("Exiting program...");
-        systemEvent.state = STATE_SYSTEM_EXIT;
-        systemEvent.cb = system_exit;
-        update_system_event();
+        {
+          console.log("Exiting program...");
+          const evt = pop_event_from_pool();
+          evt.state = STATE_SYSTEM_EXIT;
+          evt.subject = SUBJECT_SYSTEM;
+          evt.cb = system_exit;
+          update_event(evt);
+        }
         break;
       default:
         break;
@@ -247,6 +290,8 @@ function processPrompt() {
   });
 }
 
+setup_event_pool();
 init_music(main_queue);
 run_event_loop();
-processPrompt();
+start_system();
+start_prompt();
