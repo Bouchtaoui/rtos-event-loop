@@ -44,8 +44,13 @@ const readline = require("node:readline").createInterface({
   input: process.stdin,
   output: process.stdout,
 });
+const { count } = require("node:console");
 const { init_music, open_music, stop_music } = require("./music");
 
+/* In plaats van constantes te gebruiken,
+ * is het beter om enums te gebruiken
+ * */
+const STATE_INACTIVE = 255;
 const STATE_SYSTEM_IDLE = 1;
 const STATE_SYSTEM_EXIT = 0;
 const STATE_SYSTEM_PANIC = -1;
@@ -55,7 +60,54 @@ const STATE_PROMPT_SYSTEM_STOP = 12;
 const STATE_PROMPT_PLAY_AUDIO = 13;
 const STATE_PROMPT_STOP_AUDIO = 14;
 
+/**
+ * main_queue is where to push the events in, that
+ * will be dispatched later
+ */
 const main_queue = [];
+const event_pool = [];
+let event_count = 0;
+let max_event_count = 0;
+/**
+ * I use for each category a separate Event object,
+ * but that was just for testing. The important thing is to make
+ * sure all event objects have the same properties.
+ *
+ * We also need to make sure we have enough event objects for all
+ * needed events. We need to figure out how we can determine the
+ * amount of event objects.
+ *
+ * Basically we need a pool of inactive event objects.
+ * When we need an event object, we pop if from a queue. When we're
+ * done with it, we push it back. That's the theory.
+ */
+
+/* fill up event_pool with event objects */
+function setup_event_pool() {
+  for (let i = 0; i < 100; i++) {
+    event_pool.push({
+      state: STATE_INACTIVE,
+      cb: null,
+    });
+  }
+}
+function pop_event_from_pool() {
+  const e = event_pool.pop();
+  if (e) {
+    event_count++;
+    if (event_count > max_event_count) max_event_count = event_count;
+  }
+  return e;
+}
+function push_event_to_pool(e) {
+  if (e) {
+    event_count--;
+    e.state = STATE_INACTIVE;
+    e.cb = null;
+    event_pool.push(e);
+  }
+}
+
 const systemEvent = {
   cb: system_idle,
   state: STATE_SYSTEM_IDLE,
@@ -165,11 +217,11 @@ function processPrompt() {
     }
     readline.prompt();
   });
-  readline.on('close', () => {
-        systemEvent.state = STATE_SYSTEM_EXIT;
-        systemEvent.cb = () => process.exit(0);
-        update_system_event();
-  })
+  readline.on("close", () => {
+    systemEvent.state = STATE_SYSTEM_EXIT;
+    systemEvent.cb = () => process.exit(0);
+    update_system_event();
+  });
 }
 
 init_music(main_queue);
