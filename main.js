@@ -44,7 +44,6 @@ const readline = require("node:readline").createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-const { count } = require("node:console");
 const { init_music, open_music, stop_music } = require("./music");
 
 /* In plaats van constantes te gebruiken,
@@ -117,7 +116,31 @@ const promptEvent = {
   state: STATE_PROMPT,
 };
 
-function update_system_event() {
+function update_event(e) {
+    switch (e.app) {
+        case 'system':
+            console.log("Needs implementation");
+            update_system_event(e);
+            break;
+        case 'cmdl':
+            console.log("Needs implementation");
+            update_prompt_event(e);
+            break;
+        case 'music':
+            console.log("Needs implementation");
+            break;
+        case 'game':
+            console.log("Needs implementation");
+            break;
+        case 'gps':
+            console.log("Needs implementation");
+            break;
+        default:
+            break;
+    }
+}
+
+function update_system_event(e) {
   switch (systemEvent.state) {
     case STATE_SYSTEM_IDLE:
       systemEvent.state = STATE_SYSTEM_IDLE;
@@ -133,7 +156,7 @@ function update_system_event() {
   main_queue.push(systemEvent);
 }
 
-function update_prompt_event() {
+function update_prompt_event(e) {
   switch (promptEvent.state) {
     case STATE_SYSTEM_IDLE:
       break;
