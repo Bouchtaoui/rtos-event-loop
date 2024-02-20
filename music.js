@@ -164,12 +164,8 @@ function stop_route(event) {
             // event.cb = stop_playing_audio;
             break;
         case STATE_MUSIC_STOP_AUDIO:
-            event.state = STATE_MUSIC_FINAL_STOP;
-            event.cb = stop_playing_audio;
-            break;
-        case STATE_MUSIC_FINAL_STOP:
             event.state = STATE_FINISHED;
-            // event.cb = stop_playing_audio;
+            event.cb = stop_playing_audio;
             break;
         default:
             console.log("Stop route undefined state".bgRed.white);

@@ -253,19 +253,15 @@ function run_event_loop() {
 
     if (event && event.cb) {
 
-      console.log(`From id ${event.id}`.cyan);
+      // console.log(`From id ${event.id}`.cyan);
       event.cb(event);
       
-      // if(event.id === 4) {
-      //   debugger;
-      //   console.log("Break");
-      // }
-      // update state
-      update_event(event);
       // check if state is set to INACTIVE or FINISHED
       // in that case put it back to event_pool
       if (event.state === STATE_INACTIVE || event.state === STATE_FINISHED)
         push_event_to_pool(event);
+      else update_event(event); // update state
+
     } else system_idle();
   }, 200);
 }
