@@ -2,9 +2,13 @@ const colors = require('colors');
 
 colors.enable();
 
+const STATE_FINISHED = 254;
+
+
 const STATE_PLAY_MUSIC = 0;
 const STATE_STOP_MUSIC = 1;
 
+const STATE_MUSIC_INIT = 0;
 const STATE_MUSIC_SELECT_SONG = 1;
 const STATE_MUSIC_OPEN_DISK = 2;
 const STATE_MUSIC_READ_FILES = 3;
@@ -14,6 +18,7 @@ const STATE_MUSIC_READ_FILE = 6;
 const STATE_MUSIC_PLAY_AUDIO = 7;
 const STATE_MUSIC_PLAYING_AUDIO = 8;
 const STATE_MUSIC_STOP_AUDIO = 9;
+const STATE_MUSIC_FINAL_STOP = 10;
 
 
 const MUSIC_TASK = 20;
@@ -27,6 +32,17 @@ const musicEvent = {
 
 let pop_event;
 let set_event;
+
+const messages = new Map();
+
+function post_message(subj, msg) {
+    messages.set(subj, msg);
+}
+function get_message(subj) {
+    const msg = messages.get(subj);
+    messages.delete(subj);
+    return msg;
+}
 
 function init_music(pe, se){
     pop_event = pe;
@@ -64,14 +80,14 @@ function has_state_changed() {
 }
 
 function update_music_event(event) {
-    switch (event.state) {
+    switch (event.route) {
         case STATE_PLAY_MUSIC:
-            event.state = STATE_MUSIC_SELECT_SONG;
+            // event.state = STATE_MUSIC_SELECT_SONG;
             play_route(event);
             break;
         case STATE_STOP_MUSIC:
-            event.state = STATE_MUSIC_SELECT_SONG;
-            play_route(event);
+            // event.state = STATE_MUSIC_STOP_AUDIO;
+            stop_route(event);
             break;
         default:
             break;
@@ -84,7 +100,18 @@ function open_route(event) {
     
 }
 function play_route(event) {
+    console.log("play_route".bgGreen.white);
+    const new_state = get_message('play');
+    if(new_state !== undefined) {
+        event.state = new_state;
+        console.log(`Found new state: ${new_state}`.bgBlue.white);
+    }
+
     switch (event.state) {
+        case STATE_MUSIC_INIT:
+            event.state = STATE_MUSIC_SELECT_SONG;
+            event.cb = select_song;
+            break;
         case STATE_MUSIC_SELECT_SONG:
             event.state = STATE_MUSIC_OPEN_DISK;
             event.cb = open_disk;
@@ -117,6 +144,10 @@ function play_route(event) {
             event.state = STATE_MUSIC_PLAYING_AUDIO;
             event.cb = audio_playing;
             break;
+        case STATE_MUSIC_STOP_AUDIO:
+            event.state = STATE_FINISHED;
+            // event.cb = audio_playing;
+            break;
         default:
             event.state = STATE_MUSIC_UNKNOWN;
             event.cb = error;
@@ -125,12 +156,23 @@ function play_route(event) {
     
 }
 function stop_route(event) {
-    switch (event.st) {
-        case STATE_MUSIC_STOP_AUDIO:
+    console.log("stop_route".bgRed.white);
+    // console.log(event);
+    switch (event.state) {
+        case STATE_MUSIC_INIT:
             event.state = STATE_MUSIC_STOP_AUDIO;
+            // event.cb = stop_playing_audio;
+            break;
+        case STATE_MUSIC_STOP_AUDIO:
+            event.state = STATE_MUSIC_FINAL_STOP;
             event.cb = stop_playing_audio;
             break;
+        case STATE_MUSIC_FINAL_STOP:
+            event.state = STATE_FINISHED;
+            // event.cb = stop_playing_audio;
+            break;
         default:
+            console.log("Stop route undefined state".bgRed.white);
             break;
     }
 }
@@ -148,37 +190,31 @@ function open_disk() {
 
 function read_files() {
     console.log("Event: Read files".yellow);
-    // update_event();
 }
 
 function show_filenames() {
     console.log("Event: Show filenames".yellow);
-    // update_event();
 }
 
 function handle_selection() {
     console.log("Event: Handle selection".yellow);
-    // update_event();
 }
 
 function read_file() {
     console.log("Event: Read file".yellow);
-    // update_event();
 }
 
 function play_audio() {
     console.log("Event: Play audio".yellow);
-    // update_event();
 }
 
 function audio_playing() {
     console.log("Event: Audio playing".yellow);
-    // update_event();
 }
 
-function stop_playing_audio() {
-    console.log("Event: Stop playing audio".yellow);
-    // update_event();
+function stop_playing_audio(event) {
+    console.log("Event: Stop playing audio".bgMagenta.black);
+    post_message('play', STATE_MUSIC_STOP_AUDIO);
 }
 function error() {
     console.log("Event: Error when playing music".red);
