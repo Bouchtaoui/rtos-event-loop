@@ -45,7 +45,7 @@ const readline = require("node:readline").createInterface({
   output: process.stdout,
 });
 const { count } = require("node:console");
-const { init_music, open_music, stop_music } = require("./music");
+const { init_music, open_music, stop_music, update_music_event, play_music } = require("./music");
 
 /* In plaats van constantes te gebruiken,
  * is het beter om enums te gebruiken
@@ -152,6 +152,7 @@ function update_event(e) {
       break;
     case SUBJECT_MUSIC:
       console.log("Needs implementation");
+      update_music_event(e);
       break;
     case SUBJECT_GAME:
       console.log("Needs implementation");
@@ -195,8 +196,10 @@ function update_prompt_event(e) {
       e.cb = system_stop;
       break;
     case STATE_PROMPT_PLAY_AUDIO:
+      e.state = STATE_INACTIVE;
       break;
     case STATE_PROMPT_STOP_AUDIO:
+      e.state = STATE_INACTIVE;
       break;
     default:
       e.state = STATE_INACTIVE;
@@ -254,8 +257,8 @@ function processPrompt() {
           const evt = pop_event_from_pool();
           evt.state = STATE_PROMPT_PLAY_AUDIO;
           evt.subject = SUBJECT_PROMPT;
-          evt.cb = open_music;
-        //   update_prompt_event();
+          evt.cb = play_music;
+          set_event(evt);
         }
         break;
       case "stop":
@@ -265,7 +268,7 @@ function processPrompt() {
           evt.state = STATE_PROMPT_STOP_AUDIO;
           evt.subject = SUBJECT_PROMPT;
           evt.cb = stop_music;
-        //   update_prompt_event();
+          set_event(evt);
         }
         break;
       case "exit":
@@ -275,7 +278,7 @@ function processPrompt() {
           evt.state = STATE_SYSTEM_EXIT;
           evt.subject = SUBJECT_SYSTEM;
           evt.cb = system_exit;
-          update_event(evt);
+          set_event(evt);
         }
         break;
       default:
@@ -286,12 +289,17 @@ function processPrompt() {
   readline.on("close", () => {
     systemEvent.state = STATE_SYSTEM_EXIT;
     systemEvent.cb = () => process.exit(0);
-    update_system_event();
+    // update_system_event();
   });
 }
 
+function set_event(event) {
+  main_queue.push(event);
+}
+
 setup_event_pool();
-init_music(main_queue);
+init_music(pop_event_from_pool, set_event);
 run_event_loop();
 start_system();
 start_prompt();
+
