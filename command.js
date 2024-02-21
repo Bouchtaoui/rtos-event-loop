@@ -68,6 +68,38 @@ function exit_program_cmd() {
 }
 function perform_delay() {
   const evt = pop_event();
+  const nextEvt = pop_event();
+  evt.state = STATE_START_DELAY;
+  evt.subject = SUBJECT_TIMER;
+  evt.param = 5000;
+  evt.log = "Prompt cmd stop music";
+
+  nextEvt.state = STATE_SYSTEM_EXIT;
+  nextEvt.subject = SUBJECT_SYSTEM;
+  nextEvt.log = "Exit cmd, leaving app. Bye!";
+  evt.next = nextEvt;
+  set_event(evt);
+}
+/**
+ * We kunnen een ketting events genereren,
+ * om zo verschillende states met elkaar te
+ * verbinden.
+ * 
+ * Bijv. over 5 min. stuur een telegram bericht.
+ * We hebben hier met 2 soorten states te maken, nl.:
+ * 1. een delay state
+ * 2. telegram bericht versturen
+ * 
+ * Hoe doen we dit als de states onafhankelijk zijn
+ * in hun eigen context?
+ * De oplossing is een state "chainen" met een ander
+ * state. Dus we creeren een state voor een delay en
+ * hangen eraan een ander state en die state kan weer
+ * op zijn beurt een ander state hebben en ga zo door.
+ * Hiermee kunnen we een keten van states hebben.
+ */
+function send_telegram() {
+  const evt = pop_event();
   evt.state = STATE_START_DELAY;
   evt.subject = SUBJECT_TIMER;
   evt.param = 5000;

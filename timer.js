@@ -30,10 +30,13 @@ function update_timer_event(e) {
 }
 
 function perform_delay(evt) {
-  console.log("perform delay".yellow);
+  console.log("perform delay\r".yellow);
   setTimeout(() => {
-    console.log("delay ended".yellow);
-    console.log("delay finished".bgBlue);
+    console.log("delay ended\r".yellow);
+    const next = evt.next;
+    set_event(next);
+    evt.nextEvt = null;
+    console.log("delay finished\r".bgBlue);
   }, evt.param);
 }
 
@@ -42,7 +45,7 @@ function create_event(subj, state, cb) {
   evt.state = state;
   evt.subject = subj;
   evt.cb = cb;
-  evt.log = "Prompt cmd start playing music";
+  evt.log = "Prompt cmd start playing music\r";
 }
 
 module.exports = { init_timer, update_timer_event };
