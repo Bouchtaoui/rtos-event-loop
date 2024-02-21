@@ -83,6 +83,7 @@ const STATE_STOP_MUSIC = 1;
  */
 const main_queue = [];
 const event_pool = [];
+const states = new Map();
 let event_count = 0;
 let max_event_count = 0;
 /**
@@ -98,6 +99,13 @@ let max_event_count = 0;
  * When we need an event object, we pop if from a queue. When we're
  * done with it, we push it back. That's the theory.
  */
+
+function register_state_flow(id, state_updater) {
+  states.set(id, state_updater);
+}
+function get_state_updater(id) {
+  return states.get(id);
+}
 
 /* fill up event_pool with event objects */
 function setup_event_pool() {
@@ -131,38 +139,24 @@ function push_event_to_pool(e) {
   }
 }
 
-const systemEvent = {
-  cb: system_idle,
-  state: STATE_SYSTEM_IDLE,
-};
-const promptEvent = {
-  cb: null,
-  state: STATE_PROMPT,
-};
-
-function start_system() {
-  // const se = pop_event_from_pool();
-  // se.cb = system_start;
-  // se.state = STATE_SYSTEM_IDLE;
-  // se.subject = SUBJECT_SYSTEM;
-  // update_event(se);
-}
 function start_prompt() {
   processPrompt();
+}
+
+function update_event_new(e) {
+  const update_state = get_state_updater(e.subject);
+  if(update_state) update_state(e);
 }
 
 function update_event(e) {
   switch (e.subject) {
     case SUBJECT_SYSTEM:
-      // console.log("Needs implementation");
       update_system_event(e);
       break;
     case SUBJECT_PROMPT:
-      // console.log("Needs implementation");
       update_prompt_event(e);
       break;
     case SUBJECT_MUSIC:
-      // console.log("Updating music state");
       update_music_event(e);
       break;
     case SUBJECT_GAME:
@@ -180,11 +174,9 @@ function update_system_event(e) {
   switch (e.state) {
     case STATE_SYSTEM_IDLE:
       e.state = STATE_SYSTEM_IDLE;
-      // e.cb = system_idle;
       break;
     case STATE_SYSTEM_EXIT:
       e.state = STATE_INACTIVE;
-      // e.cb = null;
       break;
     default:
       e.state = STATE_SYSTEM_PANIC;
@@ -262,10 +254,6 @@ function logExecutingEvent(enable, event) {
 
 }
 
-function system_idle() {
-  // console.log("State Idle...");
-  // console.log("Putting system to sleep...");
-}
 function system_panic() {
   console.log("System in panic state, saved stack trace and than restart!");
 }
@@ -335,6 +323,7 @@ function processPrompt() {
           evt.state = STATE_SYSTEM_EXIT;
           evt.subject = SUBJECT_SYSTEM;
           evt.cb = system_exit;
+          evt.log = "Exit cmd, leaving app. Bye!";
           set_event(evt);
         }
         break;
@@ -347,11 +336,16 @@ function processPrompt() {
 
 function set_event(event) {
   main_queue.push(event);
-  // console.log("Pushed to queue: ", event);
 }
 
 setup_event_pool();
 init_music(pop_event_from_pool, set_event);
+
+register_state_flow(SUBJECT_SYSTEM, update_system_event);
+register_state_flow(SUBJECT_PROMPT, update_prompt_event);
+register_state_flow(SUBJECT_MUSIC, update_music_event);
+
+// register states
+
 run_event_loop();
-start_system();
 start_prompt();

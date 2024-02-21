@@ -43,6 +43,9 @@ function get_message(subj) {
     messages.delete(subj);
     return msg;
 }
+function clear_message(subj) {
+    messages.delete(subj);
+}
 
 function init_music(pe, se){
     pop_event = pe;
@@ -154,9 +157,14 @@ function play_route(event) {
             event.log = "State REPEAT PLAYING AUDIO";
             break;
         case STATE_MUSIC_STOP_AUDIO:
+            event.state = STATE_MUSIC_FINAL_STOP;
+            event.cb = audio_stopped;
+            event.log = "State AUDIO STOPPED";
+            break;
+        case STATE_MUSIC_FINAL_STOP:
             event.state = STATE_FINISHED;
-            // event.cb = audio_playing;
-            event.log = "State SELECT SONG";
+            event.cb = null;
+            event.log = "State AUDIO STOPPED COMPLETED";
             break;
         default:
             event.state = STATE_MUSIC_UNKNOWN;
@@ -217,9 +225,15 @@ function audio_playing() {
 }
 
 function stop_playing_audio(event) {
-    console.log("Event: Stop playing audio".bgMagenta.black);
+    console.log("Event: Stop playing audio".yellow);
     post_message('play', STATE_MUSIC_STOP_AUDIO);
 }
+
+function audio_stopped(event) {
+    console.log("Event: Audio stopped".yellow);
+    clear_message('play');
+}
+
 function error() {
     console.log("Event: Error when playing music".red);
 }
