@@ -24,15 +24,6 @@ const STATE_MUSIC_FINAL_STOP = 10;
 const MUSIC_TASK = 20;
 const SUBJECT_MUSIC = 3;
 
-const musicEvent = {
-    cb: select_song,
-    state: STATE_MUSIC_SELECT_SONG,
-    subject: SUBJECT_MUSIC
-};
-
-let pop_event;
-let set_event;
-
 const messages = new Map();
 
 function post_message(subj, msg) {
@@ -45,41 +36,6 @@ function get_message(subj) {
 }
 function clear_message(subj) {
     messages.delete(subj);
-}
-
-function init_music(pe, se){
-    pop_event = pe;
-    set_event = se;
-}
-
-function open_music() {
-    console.log("Opening music");
-    const evt = pop_event();
-    evt.cb = select_song;
-    evt.state = STATE_MUSIC_SELECT_SONG;
-    evt.subject = SUBJECT_MUSIC
-    set_event(evt);
-}
-
-function play_music() {
-    console.log("Opening music");
-    const evt = pop_event();
-    evt.cb = select_song;
-    evt.state = STATE_PLAY_MUSIC;
-    evt.subject = SUBJECT_MUSIC
-    set_event(evt);
-}
-
-function stop_music() {
-    const evt = pop_event();
-    evt.cb = stop_playing_audio;
-    evt.state = STATE_MUSIC_STOP_AUDIO;
-    evt.subject = SUBJECT_MUSIC
-    set_event(evt);
-}
-
-function has_state_changed() {
-    
 }
 
 function update_music_event(event) {
@@ -95,13 +51,8 @@ function update_music_event(event) {
         default:
             break;
     }
-
-    if(event.cb) set_event(event);
 }
 
-function open_route(event) {
-    
-}
 function play_route(event) {
     // console.log("play_route".bgGreen.white);
     const new_state = get_message('play');
@@ -238,4 +189,4 @@ function error() {
     console.log("Event: Error when playing music".red);
 }
 
-module.exports = {init_music, open_music, play_music, stop_music, update_music_event};
+module.exports = { update_music_event};

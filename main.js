@@ -168,6 +168,7 @@ function update_event(e) {
     default:
       break;
   }
+    set_event(e);
 }
 
 function update_system_event(e) {
@@ -183,7 +184,7 @@ function update_system_event(e) {
       e.cb = system_panic;
       break;
   }
-  set_event(e);
+  // set_event(e);
 }
 
 function update_prompt_event(e) {
@@ -210,7 +211,7 @@ function update_prompt_event(e) {
       e.state = STATE_INACTIVE;
       break;
   }
-  set_event(e);
+  // set_event(e);
 }
 
 function run_event_loop() {
@@ -339,13 +340,11 @@ function set_event(event) {
 }
 
 setup_event_pool();
-init_music(pop_event_from_pool, set_event);
 
+// register states
 register_state_flow(SUBJECT_SYSTEM, update_system_event);
 register_state_flow(SUBJECT_PROMPT, update_prompt_event);
 register_state_flow(SUBJECT_MUSIC, update_music_event);
-
-// register states
 
 run_event_loop();
 start_prompt();
