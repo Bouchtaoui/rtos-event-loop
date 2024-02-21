@@ -1,4 +1,4 @@
-const colors = require('colors');
+const colors = require("colors");
 colors.enable();
 // setInterval(() => mainEvent.cb(), 2500);
 /**
@@ -46,13 +46,7 @@ const readline = require("node:readline").createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-const {
-  init_music,
-  open_music,
-  stop_music,
-  update_music_event,
-  play_music,
-} = require("./music");
+const { init_music, update_music_event } = require("./music");
 
 /* In plaats van constantes te gebruiken,
  * is het beter om enums te gebruiken
@@ -111,7 +105,7 @@ function setup_event_pool() {
     event_pool.push({
       state: STATE_INACTIVE,
       cb: null,
-      id: 0
+      id: 0,
     });
   }
 }
@@ -147,18 +141,14 @@ const promptEvent = {
 };
 
 function start_system() {
-  const se = pop_event_from_pool();
-  se.cb = system_start;
-  se.state = STATE_SYSTEM_IDLE;
-  se.subject = SUBJECT_SYSTEM;
-  update_event(se);
+  // const se = pop_event_from_pool();
+  // se.cb = system_start;
+  // se.state = STATE_SYSTEM_IDLE;
+  // se.subject = SUBJECT_SYSTEM;
+  // update_event(se);
 }
 function start_prompt() {
-  const se = pop_event_from_pool();
-  se.cb = processPrompt;
-  se.state = STATE_PROMPT;
-  se.subject = SUBJECT_PROMPT;
-  update_event(se);
+  processPrompt();
 }
 
 function update_event(e) {
@@ -190,7 +180,7 @@ function update_system_event(e) {
   switch (e.state) {
     case STATE_SYSTEM_IDLE:
       e.state = STATE_SYSTEM_IDLE;
-      e.cb = system_idle;
+      // e.cb = system_idle;
       break;
     case STATE_SYSTEM_EXIT:
       e.state = STATE_INACTIVE;
@@ -201,26 +191,8 @@ function update_system_event(e) {
       e.cb = system_panic;
       break;
   }
-  main_queue.push(e);
+  set_event(e);
 }
-
-// function update_music_event(e) {
-//   switch (e.state) {
-//     case STATE_PLAY_MUSIC:
-//       e.state = STATE_SYSTEM_IDLE;
-//       e.cb = system_idle;
-//       break;
-//     case STATE_SYSTEM_EXIT:
-//       e.state = STATE_INACTIVE;
-//       // e.cb = null;
-//       break;
-//     default:
-//       e.state = STATE_SYSTEM_PANIC;
-//       e.cb = system_panic;
-//       break;
-//   }
-//   main_queue.push(e);
-// }
 
 function update_prompt_event(e) {
   switch (e.state) {
@@ -236,34 +208,58 @@ function update_prompt_event(e) {
       break;
     case STATE_PROMPT_PLAY_AUDIO:
       e.state = STATE_FINISHED;
+      e.cb = null;
       break;
     case STATE_PROMPT_STOP_AUDIO:
       e.state = STATE_FINISHED;
+      e.cb = null;
       break;
     default:
       e.state = STATE_INACTIVE;
       break;
   }
-  main_queue.push(e);
+  set_event(e);
 }
 
 function run_event_loop() {
   setInterval(() => {
+
+    logEventQueue(false)
+
+    // get next event from queue
     const event = main_queue.shift();
 
-    if (event && event.cb) {
+    if (event) {
 
-      // console.log(`From id ${event.id}`.cyan);
-      event.cb(event);
-      
+      logExecutingEvent(false, event);
+
+      // call callback if available
+      if (event.cb) event.cb(event);
+
       // check if state is set to INACTIVE or FINISHED
       // in that case put it back to event_pool
       if (event.state === STATE_INACTIVE || event.state === STATE_FINISHED)
         push_event_to_pool(event);
       else update_event(event); // update state
+    } // else system_idle();
+  }, 100);
+}
 
-    } else system_idle();
-  }, 200);
+function logEventQueue(enable) {
+  if(enable) {
+    console.log("----------Queue----------".bgCyan);
+    main_queue.forEach((e) => console.log(`ID: ${e.id} - ${e.log})`.bgMagenta));
+    console.log("-------------------------".bgCyan);
+  }
+}
+function logExecutingEvent(enable, event) {
+  if(enable) {
+      console.log("--------Executing--------".bgCyan);
+      if (event.id) console.log(`ID: ${event.id} - ${event.log})`.bgGreen);
+      else console.log(event);
+      console.log("-------------------------".bgCyan);
+  }
+
 }
 
 function system_idle() {
@@ -286,11 +282,12 @@ function system_exit() {
 
 /* prompt functions */
 function play_music_cmd() {
+  console.log("Play music cmd".bgBlue);
   const evt = pop_event_from_pool();
   evt.state = STATE_MUSIC_INIT;
   evt.route = STATE_PLAY_MUSIC;
   evt.subject = SUBJECT_MUSIC;
-  evt.cb = update_music_event;
+  evt.log = "Initiate play music event";
   set_event(evt);
 }
 
@@ -299,7 +296,7 @@ function stop_music_cmd() {
   evt.state = STATE_MUSIC_INIT;
   evt.route = STATE_STOP_MUSIC;
   evt.subject = SUBJECT_MUSIC;
-  evt.cb = update_music_event;
+  evt.log = "Initiate stop music event";
   set_event(evt);
 }
 
@@ -311,11 +308,12 @@ function processPrompt() {
     switch (input) {
       case "start":
         {
-          console.log("Start playing music");
+          console.log("Start playing music".bgBlue);
           const evt = pop_event_from_pool();
           evt.state = STATE_PROMPT_PLAY_AUDIO;
           evt.subject = SUBJECT_PROMPT;
           evt.cb = play_music_cmd;
+          evt.log = "Prompt cmd start playing music";
           set_event(evt);
         }
         break;
@@ -326,6 +324,7 @@ function processPrompt() {
           evt.state = STATE_PROMPT_STOP_AUDIO;
           evt.subject = SUBJECT_PROMPT;
           evt.cb = stop_music_cmd;
+          evt.log = "Prompt cmd stop music";
           set_event(evt);
         }
         break;
@@ -343,11 +342,6 @@ function processPrompt() {
         break;
     }
     readline.prompt();
-  });
-  readline.on("close", () => {
-    systemEvent.state = STATE_SYSTEM_EXIT;
-    systemEvent.cb = () => process.exit(0);
-    // update_system_event();
   });
 }
 

@@ -100,7 +100,7 @@ function open_route(event) {
     
 }
 function play_route(event) {
-    console.log("play_route".bgGreen.white);
+    // console.log("play_route".bgGreen.white);
     const new_state = get_message('play');
     if(new_state !== undefined) {
         event.state = new_state;
@@ -111,61 +111,72 @@ function play_route(event) {
         case STATE_MUSIC_INIT:
             event.state = STATE_MUSIC_SELECT_SONG;
             event.cb = select_song;
+            event.log = "State SELECT SONG";
             break;
         case STATE_MUSIC_SELECT_SONG:
             event.state = STATE_MUSIC_OPEN_DISK;
             event.cb = open_disk;
+            event.log = "State OPEN DISK";
             break;
         case STATE_MUSIC_OPEN_DISK:
             event.state = STATE_MUSIC_READ_FILES;
             event.cb = read_files;
+            event.log = "State READ FILES";
             break;
         case STATE_MUSIC_READ_FILES:
             event.state = STATE_MUSIC_SHOW_FILENAMES;
             event.cb = show_filenames;
+            event.log = "State SHOW FILENAMES";
             break;
         case STATE_MUSIC_SHOW_FILENAMES:
             event.state = STATE_MUSIC_HANDLE_SELECTION;
             event.cb = handle_selection;
+            event.log = "State HANDLE SELECTION";
             break;
         case STATE_MUSIC_HANDLE_SELECTION:
             event.state = STATE_MUSIC_READ_FILE;
             event.cb = read_file;
+            event.log = "State READ FILES";
             break;
         case STATE_MUSIC_READ_FILE:
             event.state = STATE_MUSIC_PLAY_AUDIO;
             event.cb = play_audio;
+            event.log = "State PLAY AUDIO";
             break;
         case STATE_MUSIC_PLAY_AUDIO:
             event.state = STATE_MUSIC_PLAYING_AUDIO;
             event.cb = audio_playing;
+            event.log = "State PLAYING AUDIO";
             break;
         case STATE_MUSIC_PLAYING_AUDIO:
             event.state = STATE_MUSIC_PLAYING_AUDIO;
             event.cb = audio_playing;
+            event.log = "State REPEAT PLAYING AUDIO";
             break;
         case STATE_MUSIC_STOP_AUDIO:
             event.state = STATE_FINISHED;
             // event.cb = audio_playing;
+            event.log = "State SELECT SONG";
             break;
         default:
             event.state = STATE_MUSIC_UNKNOWN;
             event.cb = error;
+            event.log = "State SELECT SONG";
             break;
     }
     
 }
 function stop_route(event) {
-    console.log("stop_route".bgRed.white);
-    // console.log(event);
+    // console.log("stop_route".bgRed.white);
+    
     switch (event.state) {
         case STATE_MUSIC_INIT:
             event.state = STATE_MUSIC_STOP_AUDIO;
-            // event.cb = stop_playing_audio;
+            event.cb = stop_playing_audio;
             break;
         case STATE_MUSIC_STOP_AUDIO:
             event.state = STATE_FINISHED;
-            event.cb = stop_playing_audio;
+            event.cb = null;
             break;
         default:
             console.log("Stop route undefined state".bgRed.white);
@@ -173,9 +184,6 @@ function stop_route(event) {
     }
 }
 
-function friendlyLog(msg) {
-    console.log(chalk.yellow(msg));
-}
 function select_song() {
     console.log("Event: Select Song".yellow);
 }
