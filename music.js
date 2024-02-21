@@ -4,7 +4,6 @@ colors.enable();
 
 const STATE_FINISHED = 254;
 
-
 const STATE_PLAY_MUSIC = 0;
 const STATE_STOP_MUSIC = 1;
 
@@ -41,11 +40,9 @@ function clear_message(subj) {
 function update_music_event(event) {
     switch (event.route) {
         case STATE_PLAY_MUSIC:
-            // event.state = STATE_MUSIC_SELECT_SONG;
             play_route(event);
             break;
         case STATE_STOP_MUSIC:
-            // event.state = STATE_MUSIC_STOP_AUDIO;
             stop_route(event);
             break;
         default:

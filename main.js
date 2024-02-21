@@ -48,6 +48,7 @@ const readline = require("node:readline").createInterface({
 });
 const { update_music_event } = require("./music");
 const { update_prompt_event } = require("./prompt");
+const { init_timer, update_timer_event } = require("./timer");
 
 /* In plaats van constantes te gebruiken,
  * is het beter om enums te gebruiken
@@ -57,6 +58,7 @@ const SUBJECT_PROMPT = 2;
 const SUBJECT_MUSIC = 3;
 const SUBJECT_GAME = 4;
 const SUBJECT_GPS = 5;
+const SUBJECT_TIMER = 6;
 
 const STATE_INACTIVE = 255;
 const STATE_FINISHED = 254;
@@ -77,6 +79,9 @@ const STATE_PROMPT_STOP_AUDIO = 14;
 const STATE_MUSIC_INIT = 0;
 const STATE_PLAY_MUSIC = 0;
 const STATE_STOP_MUSIC = 1;
+
+//  Timer states
+const STATE_START_DELAY = 1;
 
 /**
  * main_queue is where to push the events in, that
@@ -146,9 +151,9 @@ function start_prompt() {
 
 function update_event_new(e) {
   const update_state = get_state_updater(e.subject);
-  if(update_state) {
+  if (update_state) {
     update_state(e);
-    set_event(e)
+    set_event(e);
   } else {
     console.log("update state not found!".bgRed);
   }
@@ -166,46 +171,16 @@ function update_system_event(e) {
       e.cb = system_panic;
       break;
   }
-  // set_event(e);
 }
-
-// function update_prompt_event(e) {
-//   switch (e.state) {
-//     case STATE_SYSTEM_IDLE:
-//       break;
-//     case STATE_PROMPT_SYSTEM_START:
-//       e.state = STATE_PROMPT_SYSTEM_START;
-//       e.cb = system_start;
-//       break;
-//     case STATE_PROMPT_SYSTEM_STOP:
-//       e.state = STATE_PROMPT_SYSTEM_STOP;
-//       e.cb = system_stop;
-//       break;
-//     case STATE_PROMPT_PLAY_AUDIO:
-//       e.state = STATE_FINISHED;
-//       e.cb = null;
-//       break;
-//     case STATE_PROMPT_STOP_AUDIO:
-//       e.state = STATE_FINISHED;
-//       e.cb = null;
-//       break;
-//     default:
-//       e.state = STATE_INACTIVE;
-//       break;
-//   }
-//   // set_event(e);
-// }
 
 function run_event_loop() {
   setInterval(() => {
-
-    logEventQueue(false)
+    logEventQueue(false);
 
     // get next event from queue
     const event = main_queue.shift();
 
     if (event) {
-
       logExecutingEvent(false, event);
 
       // call callback if available
@@ -221,20 +196,19 @@ function run_event_loop() {
 }
 
 function logEventQueue(enable) {
-  if(enable) {
+  if (enable) {
     console.log("----------Queue----------".bgCyan);
     main_queue.forEach((e) => console.log(`ID: ${e.id} - ${e.log})`.bgMagenta));
     console.log("-------------------------".bgCyan);
   }
 }
 function logExecutingEvent(enable, event) {
-  if(enable) {
-      console.log("--------Executing--------".bgCyan);
-      if (event.id) console.log(`ID: ${event.id} - ${event.log})`.bgGreen);
-      else console.log(event);
-      console.log("-------------------------".bgCyan);
+  if (enable) {
+    console.log("--------Executing--------".bgCyan);
+    if (event.id) console.log(`ID: ${event.id} - ${event.log})`.bgGreen);
+    else console.log(event);
+    console.log("-------------------------".bgCyan);
   }
-
 }
 
 function system_panic() {
@@ -270,6 +244,23 @@ function stop_music_cmd() {
   evt.log = "Initiate stop music event";
   set_event(evt);
 }
+function exit_program_cmd() {
+  const evt = pop_event_from_pool();
+  evt.state = STATE_SYSTEM_EXIT;
+  evt.subject = SUBJECT_SYSTEM;
+  evt.cb = system_exit;
+  evt.log = "Exit cmd, leaving app. Bye!";
+  set_event(evt);
+}
+function perform_delay() {
+  const evt = pop_event_from_pool();
+  evt.state = STATE_START_DELAY;
+  evt.subject = SUBJECT_TIMER;
+  evt.cb = null;
+  evt.param = 5000;
+  evt.log = "Prompt cmd stop music";
+  set_event(evt);
+}
 
 function processPrompt() {
   readline.setPrompt("EL> ");
@@ -280,34 +271,27 @@ function processPrompt() {
       case "start":
         {
           console.log("Start playing music".bgBlue);
-          const evt = pop_event_from_pool();
-          evt.state = STATE_PROMPT_PLAY_AUDIO;
-          evt.subject = SUBJECT_PROMPT;
-          evt.cb = play_music_cmd;
-          evt.log = "Prompt cmd start playing music";
-          set_event(evt);
+          play_music_cmd();
+          return;
         }
         break;
       case "stop":
         {
           console.log("Stop music");
-          const evt = pop_event_from_pool();
-          evt.state = STATE_PROMPT_STOP_AUDIO;
-          evt.subject = SUBJECT_PROMPT;
-          evt.cb = stop_music_cmd;
-          evt.log = "Prompt cmd stop music";
-          set_event(evt);
+          stop_music_cmd();
+          return;
+        }
+        break;
+      case "delay":
+        {
+          console.log("Start delay");
+          perform_delay();
         }
         break;
       case "exit":
         {
           console.log("Exiting program...");
-          const evt = pop_event_from_pool();
-          evt.state = STATE_SYSTEM_EXIT;
-          evt.subject = SUBJECT_SYSTEM;
-          evt.cb = system_exit;
-          evt.log = "Exit cmd, leaving app. Bye!";
-          set_event(evt);
+          exit_program_cmd();
         }
         break;
       default:
@@ -323,10 +307,14 @@ function set_event(event) {
 
 setup_event_pool();
 
+// inits
+init_timer(set_event, pop_event_from_pool);
+
 // register states
 register_state_flow(SUBJECT_SYSTEM, update_system_event);
 register_state_flow(SUBJECT_PROMPT, update_prompt_event);
 register_state_flow(SUBJECT_MUSIC, update_music_event);
+register_state_flow(SUBJECT_TIMER, update_timer_event);
 
 run_event_loop();
 start_prompt();
