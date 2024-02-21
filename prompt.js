@@ -1,9 +1,11 @@
 
-const readline = require("node:readline").createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
 
+const STATE_SYSTEM_IDLE = 1;
+const STATE_SYSTEM_EXIT = 0;
+const STATE_SYSTEM_PANIC = -1;
+
+const STATE_INACTIVE = 255;
+const STATE_FINISHED = 254;
 
 // Prompt states
 const STATE_PROMPT = 10;
@@ -37,7 +39,6 @@ function update_prompt_event(e) {
       e.state = STATE_INACTIVE;
       break;
   }
-  set_event(e);
 }
 
 

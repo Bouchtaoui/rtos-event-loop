@@ -46,7 +46,8 @@ const readline = require("node:readline").createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-const { init_music, update_music_event } = require("./music");
+const { update_music_event } = require("./music");
+const { update_prompt_event } = require("./prompt");
 
 /* In plaats van constantes te gebruiken,
  * is het beter om enums te gebruiken
@@ -145,32 +146,13 @@ function start_prompt() {
 
 function update_event_new(e) {
   const update_state = get_state_updater(e.subject);
-  if(update_state) update_state(e);
-}
-
-function update_event(e) {
-  switch (e.subject) {
-    case SUBJECT_SYSTEM:
-      update_system_event(e);
-      break;
-    case SUBJECT_PROMPT:
-      update_prompt_event(e);
-      break;
-    case SUBJECT_MUSIC:
-      update_music_event(e);
-      break;
-    case SUBJECT_GAME:
-      console.log("Needs implementation");
-      break;
-    case SUBJECT_GPS:
-      console.log("Needs implementation");
-      break;
-    default:
-      break;
+  if(update_state) {
+    update_state(e);
+    set_event(e)
+  } else {
+    console.log("update state not found!".bgRed);
   }
-    set_event(e);
 }
-
 function update_system_event(e) {
   switch (e.state) {
     case STATE_SYSTEM_IDLE:
@@ -187,32 +169,32 @@ function update_system_event(e) {
   // set_event(e);
 }
 
-function update_prompt_event(e) {
-  switch (e.state) {
-    case STATE_SYSTEM_IDLE:
-      break;
-    case STATE_PROMPT_SYSTEM_START:
-      e.state = STATE_PROMPT_SYSTEM_START;
-      e.cb = system_start;
-      break;
-    case STATE_PROMPT_SYSTEM_STOP:
-      e.state = STATE_PROMPT_SYSTEM_STOP;
-      e.cb = system_stop;
-      break;
-    case STATE_PROMPT_PLAY_AUDIO:
-      e.state = STATE_FINISHED;
-      e.cb = null;
-      break;
-    case STATE_PROMPT_STOP_AUDIO:
-      e.state = STATE_FINISHED;
-      e.cb = null;
-      break;
-    default:
-      e.state = STATE_INACTIVE;
-      break;
-  }
-  // set_event(e);
-}
+// function update_prompt_event(e) {
+//   switch (e.state) {
+//     case STATE_SYSTEM_IDLE:
+//       break;
+//     case STATE_PROMPT_SYSTEM_START:
+//       e.state = STATE_PROMPT_SYSTEM_START;
+//       e.cb = system_start;
+//       break;
+//     case STATE_PROMPT_SYSTEM_STOP:
+//       e.state = STATE_PROMPT_SYSTEM_STOP;
+//       e.cb = system_stop;
+//       break;
+//     case STATE_PROMPT_PLAY_AUDIO:
+//       e.state = STATE_FINISHED;
+//       e.cb = null;
+//       break;
+//     case STATE_PROMPT_STOP_AUDIO:
+//       e.state = STATE_FINISHED;
+//       e.cb = null;
+//       break;
+//     default:
+//       e.state = STATE_INACTIVE;
+//       break;
+//   }
+//   // set_event(e);
+// }
 
 function run_event_loop() {
   setInterval(() => {
@@ -233,7 +215,7 @@ function run_event_loop() {
       // in that case put it back to event_pool
       if (event.state === STATE_INACTIVE || event.state === STATE_FINISHED)
         push_event_to_pool(event);
-      else update_event(event); // update state
+      else update_event_new(event); // update_event(event); // update state
     } // else system_idle();
   }, 100);
 }
