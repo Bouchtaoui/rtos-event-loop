@@ -1,6 +1,12 @@
 {
   "dependencies": {
     "colors": "^1.4.0",
-    "command-line-parser": "^0.2.10"
+    "command-line-parser": "^0.2.10",
+    "ffmpeg": "^0.0.4",
+    "ffplay": "^1.1.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "mplayer": "^2.1.0",
+    "node-mpv": "^1.5.0",
+    "uvc": "^1.0.0"
   }
 }
